@@ -1,28 +1,75 @@
 import torch
-from torch.utils.data import DataLoader, Subset
+import os
+from torch.utils.data import DataLoader, Subset, Dataset
 from torchvision import datasets, transforms
 from efficientnet_pytorch import EfficientNet
 from sklearn.model_selection import KFold
 import numpy as np
+import pandas as pd
+import datetime
+from PIL import Image
+
+
+class RegressionDataset(Dataset):
+    def __init__(self, csv_file, image_dir, transform=None):
+        self.data = pd.read_csv(csv_file)
+        self.image_dir = image_dir
+        self.transform = transform
+        # print(self.data.head())
+        print(self.data)
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx):
+        # print("idx=",idx)
+        img_filename = self.data.iloc[idx,0]
+        img_path = os.path.join(self.image_dir, img_filename)
+        image = Image.open(img_path).convert("RGB")
+
+        if self.transform is not None:
+            image = self.transform(image)
+
+        label = self.data.iloc[idx,1]
+        label = float(label)  # Ensure the label is a float
+        # print("label=",label)
+
+        return image, label
 
 # Set device
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Data loading code
-traindir = 'path_to_your_data'
+traindir = '/mnt/c/Users/survey/Desktop/NAPS/Train_Val'
 
 normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                  std=[0.229, 0.224, 0.225])
 image_size = EfficientNet.get_image_size('efficientnet-b4')
 
-train_dataset = datasets.ImageFolder(
-    traindir,
-    transforms.Compose([
-        transforms.RandomResizedCrop(image_size),
-        transforms.RandomHorizontalFlip(),
-        transforms.ToTensor(),
-        normalize,
-    ]))
+# Load the CSV file containing continuous values
+csv_path = '/mnt/c/Users/survey/Desktop/NAPS/Train_Val.csv'
+# continuous_values = pd.read_csv(csv_path)['Valence'].values
+
+# train_dataset = datasets.ImageFolder(
+#     traindir,
+#     transforms.Compose([
+#         transforms.RandomResizedCrop(image_size),
+#         transforms.RandomHorizontalFlip(),
+#         transforms.ToTensor(),
+#         normalize,
+#     ]))
+
+train_transform = transforms.Compose([
+    transforms.RandomResizedCrop(image_size),
+    transforms.RandomHorizontalFlip(),
+    transforms.ToTensor(),
+    normalize,
+])
+
+train_dataset = RegressionDataset(csv_path, traindir, transform=train_transform)
+# print("66line")
+# oi,ykk= next(iter(train_dataset))
+# print("ykk=",ykk)
 
 # Initialize the KFold class
 k_folds = 5
@@ -30,16 +77,45 @@ kfold = KFold(n_splits=k_folds, shuffle=True)
 
 # Start the KFold training
 for fold, (train_ids, val_ids) in enumerate(kfold.split(train_dataset)):
+    train_ids = list(train_ids)
+    val_ids = list(val_ids)
     print(f'FOLD {fold}')
     print('--------------------------------')
-
+    print(f'train_ids: {train_ids}')
+    print(f'valid_ids: {val_ids}')
+    print('--------------------------------')
+    # data_0 = train_dataset[0]
+    # print("YKK=",type(data_0))
+    print('-------------kero----------------')
+    print("train_ids=",len(train_ids))
+    # data_0 = train_ids[0]
+    # print("data_0=", data_0)
+    # print("YKK=",type(data_0))
+    print("train_dataset=",len(train_dataset))
     # Define the data subsets for training and validation
     train_subsampler = Subset(train_dataset, train_ids)
     val_subsampler = Subset(train_dataset, val_ids)
+    print('---------------yo-----------------')
+    # data_0 = train_subsampler[0]
+    # val_0=val_subsampler[0]
+    print('---------------oi-----------------')
+    print("train_subsampler=",len(train_subsampler))
 
     # Define data loaders for training and validation
-    train_loader = DataLoader(train_dataset, batch_size=16, sampler=train_subsampler)
-    val_loader = DataLoader(train_dataset, batch_size=16, sampler=val_subsampler)
+    train_loader = DataLoader(train_subsampler, batch_size=16)
+    val_loader = DataLoader(val_subsampler, batch_size=16)
+    # train_loader = DataLoader(train_dataset, batch_size=16, sampler=train_subsampler)
+    # val_loader = DataLoader(train_dataset, batch_size=16, sampler=val_subsampler)
+    print('---------------flog-----------------')
+    print("train_loader=",len(train_loader))
+    # Get the first batch from the train_loader
+    # first_batch = next(iter(train_loader))
+    # print(type(first_batch))  # Check the type of the first_batch
+    # print(len(first_batch))  # Check the length (number of elements) in the first_batch
+    #
+    # # If the first_batch is a list or tuple, print the type of its first element
+    # if isinstance(first_batch, (list, tuple)):
+    #     print(type(first_batch[0]))
 
     # Initialize the pretrained EfficientNet
     model = EfficientNet.from_pretrained('efficientnet-b4')
@@ -50,11 +126,25 @@ for fold, (train_ids, val_ids) in enumerate(kfold.split(train_dataset)):
     criterion = torch.nn.MSELoss() # Use MSE for regression task
     optimizer = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
 
+    print(type(train_loader))
+    print("line104=",len(train_loader))
+    # i,data = next(iter(train_loader))
+    # print(data)
+
+    # for i, data in enumerate(train_loader, 0):
+    #     print(type(data))
+    #     if i > 5:  # 最初の5バッチだけをプリントしてループを終了
+    #         break
+
     # Training process
     for epoch in range(10):  # loop over the dataset multiple times
+        print("epoch=",epoch)
         model.train()
         running_loss = 0.0
+        # for i, data in enumerate(train_loader, 0):
         for i, data in enumerate(train_loader, 0):
+            # print("i=",i)
+            # print("data[1]=",data[1])
             inputs, labels = data[0].to(device), data[1].float().to(device)  # Adjust labels for regression task
 
             optimizer.zero_grad()
@@ -80,6 +170,8 @@ for fold, (train_ids, val_ids) in enumerate(kfold.split(train_dataset)):
         print(f'Epoch {epoch + 1}, Training Loss: {running_loss / len(train_loader)}, Validation Loss: {val_loss / len(val_loader)}')
 
     # Save the model after each fold
+    current_time = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+    model_path = f'efficientnet-b4_fold_{fold}_{current_time}.pth'
     torch.save(model.state_dict(), f'efficientnet-b4_fold_{fold}.pth')
 
 print('Finished Training')
