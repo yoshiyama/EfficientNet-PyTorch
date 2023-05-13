@@ -1,5 +1,8 @@
+#python transfer.py --epochs 20
+# 実行方法
 import torch
 import os
+import argparse
 from torch.utils.data import DataLoader, Subset, Dataset
 from torchvision import datasets, transforms
 from efficientnet_pytorch import EfficientNet
@@ -8,7 +11,8 @@ import numpy as np
 import pandas as pd
 import datetime
 from PIL import Image
-
+from tqdm import tqdm
+import matplotlib.pyplot as plt
 
 class RegressionDataset(Dataset):
     def __init__(self, csv_file, image_dir, transform=None):
@@ -75,15 +79,25 @@ train_dataset = RegressionDataset(csv_path, traindir, transform=train_transform)
 k_folds = 5
 kfold = KFold(n_splits=k_folds, shuffle=True)
 
+# Parse command line arguments
+parser = argparse.ArgumentParser()
+parser.add_argument('--epochs', type=int, default=10, help='Number of epochs to run')
+args = parser.parse_args()
+
+# Initialize the dict to store loss history for each fold
+loss_history = {}# Add this line to record losses
+
 # Start the KFold training
 for fold, (train_ids, val_ids) in enumerate(kfold.split(train_dataset)):
+    # Initialize the lists to record losses for this fold
+    loss_history[fold] = {"train": [], "val": []}
     train_ids = list(train_ids)
     val_ids = list(val_ids)
     print(f'FOLD {fold}')
-    print('--------------------------------')
-    print(f'train_ids: {train_ids}')
-    print(f'valid_ids: {val_ids}')
-    print('--------------------------------')
+    # print('--------------------------------')
+    # print(f'train_ids: {train_ids}')
+    # print(f'valid_ids: {val_ids}')
+    # print('--------------------------------')
     # data_0 = train_dataset[0]
     # print("YKK=",type(data_0))
     print('-------------kero----------------')
@@ -137,12 +151,13 @@ for fold, (train_ids, val_ids) in enumerate(kfold.split(train_dataset)):
     #         break
 
     # Training process
-    for epoch in range(10):  # loop over the dataset multiple times
+    # for epoch in range(10):  # loop over the dataset multiple times
+    for epoch in range(args.epochs):
         print("epoch=",epoch)
         model.train()
         running_loss = 0.0
         # for i, data in enumerate(train_loader, 0):
-        for i, data in enumerate(train_loader, 0):
+        for i, data in tqdm(enumerate(train_loader), total=len(train_loader), desc=f"Epoch {epoch+1}/{args.epochs}, Training"):
             # print("i=",i)
             # print("data[1]=",data[1])
             inputs, labels = data[0].to(device), data[1].float().to(device)  # Adjust labels for regression task
@@ -156,22 +171,41 @@ for fold, (train_ids, val_ids) in enumerate(kfold.split(train_dataset)):
 
             running_loss += loss.item()
 
+        running_loss /= len(train_loader)
+        loss_history[fold]["train"].append(running_loss)  # Record the loss for this fold
         # Validation process
         model.eval()
         val_loss = 0.0
         with torch.no_grad():
-            for i, data in enumerate(val_loader, 0):
+            for i, data in tqdm(enumerate(val_loader), total=len(val_loader), desc=f"Epoch {epoch+1}/{args.epochs}, Validation"):
                 inputs, labels = data[0].to(device), data[1].float().to(device)  # Adjust labels for regression task
 
                 outputs = model(inputs)
                 loss = criterion(outputs, labels.unsqueeze(1))  # Adjust labels for regression task
                 val_loss += loss.item()
 
-        print(f'Epoch {epoch + 1}, Training Loss: {running_loss / len(train_loader)}, Validation Loss: {val_loss / len(val_loader)}')
+        val_loss /= len(val_loader)
+        loss_history[fold]["val"].append(val_loss)  # Record the loss for this fold
+
+        # loss_history["val"].append(val_loss)  # Add this line
+
+        # print(f'Epoch {epoch + 1}, Training Loss: {running_loss / len(train_loader)}, Validation Loss: {val_loss / len(val_loader)}')
+        print(f'Fold {fold}, Epoch {epoch + 1}, Training Loss: {running_loss}, Validation Loss: {val_loss}')
 
     # Save the model after each fold
     current_time = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
     model_path = f'efficientnet-b4_fold_{fold}_{current_time}.pth'
-    torch.save(model.state_dict(), f'efficientnet-b4_fold_{fold}.pth')
+    torch.save(model.state_dict(), model_path)
+    # torch.save(model.state_dict(), f'efficientnet-b4_fold_{fold}.pth')
 
 print('Finished Training')
+# Plot the loss history for each fold
+for fold in loss_history.keys():
+    plt.figure(figsize=(10, 5))
+    plt.plot(loss_history[fold]["train"], label="Train Loss")
+    plt.plot(loss_history[fold]["val"], label="Validation Loss")
+    plt.title(f"Loss history for fold {fold}")
+    plt.xlabel("Epoch")
+    plt.ylabel("Loss")
+    plt.legend()
+    plt.show()
