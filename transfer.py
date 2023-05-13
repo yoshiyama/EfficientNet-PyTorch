@@ -100,28 +100,28 @@ for fold, (train_ids, val_ids) in enumerate(kfold.split(train_dataset)):
     # print('--------------------------------')
     # data_0 = train_dataset[0]
     # print("YKK=",type(data_0))
-    print('-------------kero----------------')
-    print("train_ids=",len(train_ids))
+    # print('-------------kero----------------')
+    # print("train_ids=",len(train_ids))
     # data_0 = train_ids[0]
     # print("data_0=", data_0)
     # print("YKK=",type(data_0))
-    print("train_dataset=",len(train_dataset))
+    # print("train_dataset=",len(train_dataset))
     # Define the data subsets for training and validation
     train_subsampler = Subset(train_dataset, train_ids)
     val_subsampler = Subset(train_dataset, val_ids)
-    print('---------------yo-----------------')
+    # print('---------------yo-----------------')
     # data_0 = train_subsampler[0]
     # val_0=val_subsampler[0]
-    print('---------------oi-----------------')
-    print("train_subsampler=",len(train_subsampler))
+    # print('---------------oi-----------------')
+    # print("train_subsampler=",len(train_subsampler))
 
     # Define data loaders for training and validation
     train_loader = DataLoader(train_subsampler, batch_size=16)
     val_loader = DataLoader(val_subsampler, batch_size=16)
     # train_loader = DataLoader(train_dataset, batch_size=16, sampler=train_subsampler)
     # val_loader = DataLoader(train_dataset, batch_size=16, sampler=val_subsampler)
-    print('---------------flog-----------------')
-    print("train_loader=",len(train_loader))
+    # print('---------------flog-----------------')
+    # print("train_loader=",len(train_loader))
     # Get the first batch from the train_loader
     # first_batch = next(iter(train_loader))
     # print(type(first_batch))  # Check the type of the first_batch
@@ -141,7 +141,7 @@ for fold, (train_ids, val_ids) in enumerate(kfold.split(train_dataset)):
     optimizer = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
 
     print(type(train_loader))
-    print("line104=",len(train_loader))
+    # print("line104=",len(train_loader))
     # i,data = next(iter(train_loader))
     # print(data)
 
@@ -200,6 +200,22 @@ for fold, (train_ids, val_ids) in enumerate(kfold.split(train_dataset)):
 
 print('Finished Training')
 # Plot the loss history for each fold
+# for fold in loss_history.keys():
+#     plt.figure(figsize=(10, 5))
+#     plt.plot(loss_history[fold]["train"], label="Train Loss")
+#     plt.plot(loss_history[fold]["val"], label="Validation Loss")
+#     plt.title(f"Loss history for fold {fold}")
+#     plt.xlabel("Epoch")
+#     plt.ylabel("Loss")
+#     plt.legend()
+#     plt.show()
+
+current_time_2nd = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+# 保存するディレクトリを作成
+output_dir = f"results_{current_time_2nd}"
+os.makedirs(output_dir, exist_ok=True)
+
+# Plot the loss history for each fold
 for fold in loss_history.keys():
     plt.figure(figsize=(10, 5))
     plt.plot(loss_history[fold]["train"], label="Train Loss")
@@ -208,4 +224,13 @@ for fold in loss_history.keys():
     plt.xlabel("Epoch")
     plt.ylabel("Loss")
     plt.legend()
+
+    # グラフを画像ファイルとして保存
+    plot_filename = f"{output_dir}/loss_history_fold_{fold}_{current_time_2nd}.png"
+    plt.savefig(plot_filename)
     plt.show()
+
+# 損失履歴データをCSVファイルとして保存
+loss_history_df = pd.DataFrame(loss_history)
+loss_history_filename = f"{output_dir}/loss_history_{current_time_2nd}.csv"
+loss_history_df.to_csv(loss_history_filename, index=False)
