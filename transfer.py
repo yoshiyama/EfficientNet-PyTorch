@@ -1,4 +1,5 @@
 #python transfer.py --epochs 20
+#python transfer.py --epochs 20 --add_name NAPS --csv_path /path/to/your/csv_file.csv --traindir /path/to/your/train_directory
 # 実行方法
 import torch
 import os
@@ -43,15 +44,29 @@ class RegressionDataset(Dataset):
 # Set device
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+# Parse command line arguments
+parser = argparse.ArgumentParser()
+parser.add_argument('--epochs', type=int, default=10, help='Number of epochs to run')
+parser.add_argument('--add_name', type=str, required=True, help='Additional name for output files')
+parser.add_argument('--csv_path', type=str, required=True, help='Path to the CSV file containing continuous values')
+parser.add_argument('--traindir', type=str, required=True, help='Path to the training directory containing images')
+args = parser.parse_args()
+
+# add_name="NAPS"
+add_name = args.add_name
+
 # Data loading code
-traindir = '/mnt/c/Users/survey/Desktop/NAPS/Train_Val'
+# traindir = '/mnt/c/Users/survey/Desktop/NAPS/Train_Val'
+traindir = args.traindir
+
+# Load the CSV file containing continuous values
+# csv_path = '/mnt/c/Users/survey/Desktop/NAPS/Train_Val.csv'
+csv_path = args.csv_path
 
 normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                  std=[0.229, 0.224, 0.225])
 image_size = EfficientNet.get_image_size('efficientnet-b4')
 
-# Load the CSV file containing continuous values
-csv_path = '/mnt/c/Users/survey/Desktop/NAPS/Train_Val.csv'
 # continuous_values = pd.read_csv(csv_path)['Valence'].values
 
 # train_dataset = datasets.ImageFolder(
@@ -64,8 +79,11 @@ csv_path = '/mnt/c/Users/survey/Desktop/NAPS/Train_Val.csv'
 #     ]))
 
 train_transform = transforms.Compose([
-    transforms.RandomResizedCrop(image_size),
-    transforms.RandomHorizontalFlip(),
+    # transforms.RandomResizedCrop(image_size),
+    transforms.Resize((380, 380)),
+    # transforms.RandomHorizontalFlip(),
+    transforms.RandomHorizontalFlip(p=0.5),
+    transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.2),
     transforms.ToTensor(),
     normalize,
 ])
@@ -79,10 +97,7 @@ train_dataset = RegressionDataset(csv_path, traindir, transform=train_transform)
 k_folds = 5
 kfold = KFold(n_splits=k_folds, shuffle=True)
 
-# Parse command line arguments
-parser = argparse.ArgumentParser()
-parser.add_argument('--epochs', type=int, default=10, help='Number of epochs to run')
-args = parser.parse_args()
+
 
 # Initialize the dict to store loss history for each fold
 loss_history = {}# Add this line to record losses
@@ -194,7 +209,7 @@ for fold, (train_ids, val_ids) in enumerate(kfold.split(train_dataset)):
 
     # Save the model after each fold
     current_time = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-    model_path = f'efficientnet-b4_fold_{fold}_{current_time}.pth'
+    model_path = f'efficientnet-b4_fold_{add_name}_{fold}_{current_time}.pth'
     torch.save(model.state_dict(), model_path)
     # torch.save(model.state_dict(), f'efficientnet-b4_fold_{fold}.pth')
 
@@ -212,7 +227,7 @@ print('Finished Training')
 
 current_time_2nd = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
 # 保存するディレクトリを作成
-output_dir = f"results_{current_time_2nd}"
+output_dir = f"results_{add_name}_{current_time_2nd}"
 os.makedirs(output_dir, exist_ok=True)
 
 # Plot the loss history for each fold
@@ -226,11 +241,11 @@ for fold in loss_history.keys():
     plt.legend()
 
     # グラフを画像ファイルとして保存
-    plot_filename = f"{output_dir}/loss_history_fold_{fold}_{current_time_2nd}.png"
+    plot_filename = f"{output_dir}/loss_history_fold_{add_name}_{fold}_{current_time_2nd}.png"
     plt.savefig(plot_filename)
     plt.show()
 
 # 損失履歴データをCSVファイルとして保存
 loss_history_df = pd.DataFrame(loss_history)
-loss_history_filename = f"{output_dir}/loss_history_{current_time_2nd}.csv"
+loss_history_filename = f"{output_dir}/loss_history_{add_name}_{current_time_2nd}.csv"
 loss_history_df.to_csv(loss_history_filename, index=False)
