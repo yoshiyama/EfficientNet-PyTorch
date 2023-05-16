@@ -1,6 +1,10 @@
 #python transfer.py --epochs 20
+
 #python transfer.py --epochs 20 --add_name NAPS --csv_path /path/to/your/csv_file.csv --traindir /path/to/your/train_directory
+
 #python transfer.py --epochs 20 --add_name OASIS --csv_path /mnt/c/Users/survey/Desktop/OASIS/Train_Val.csv --traindir /mnt/c/Users/survey/Desktop/OASIS/Train_Val
+
+#python transfer1.py --epochs 20 --add_name GAPED --csv_path /mnt/c/Users/survey/Desktop/GAPED_2/GAPED/GAPED4AI/Train_Val.csv --traindir /mnt/c/Users/survey/Desktop/GAPED_2/GAPED/GAPED4AI/Train_Val
 # 実行方法
 import torch
 import os

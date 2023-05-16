@@ -1,3 +1,5 @@
+# python your_script.py --root_dir /mnt/c/Users/survey/Desktop/NAPS --model_path /mnt/c/Users/survey/Documents/GitHub/EfficientNet-PyTorch/efficientnet-b4_fold_0.pth
+
 import torch
 import os
 from torch.utils.data import DataLoader, Subset, Dataset
@@ -9,6 +11,14 @@ import pandas as pd
 import datetime
 from PIL import Image
 import matplotlib.pyplot as plt
+import argparse
+
+
+# Add argparse for command line arguments
+parser = argparse.ArgumentParser(description='Regression model with EfficientNet')
+parser.add_argument('--root_dir', required=True, help='Root directory path')
+parser.add_argument('--model_path', required=True, help='Model file path')
+args = parser.parse_args()
 
 
 class RegressionDataset(Dataset):
@@ -48,14 +58,22 @@ test_transform = transforms.Compose([
 ])
 # Set device
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# root_dir = '/mnt/c/Users/survey/Desktop/NAPS'
+root_dir = args.root_dir
 # Load the CSV file containing continuous values
-test_csv_path = '/mnt/c/Users/survey/Desktop/NAPS/Test.csv'
-test_dir='/mnt/c/Users/survey/Desktop/NAPS/Test'
+test_csv_path = os.path.join(root_dir, "Test.csv")
+test_dir = os.path.join(root_dir, "Test")
+
+print("test_csv_path:", test_csv_path)
+print("test_dir:", test_dir)
+# test_csv_path = '/mnt/c/Users/survey/Desktop/NAPS/Test.csv'
+# test_dir='/mnt/c/Users/survey/Desktop/NAPS/Test'
 
 # Assuming you have a separate test dataset and its corresponding data loader
 test_dataset = RegressionDataset(test_csv_path, test_dir, transform=test_transform)
 test_loader = DataLoader(test_dataset, batch_size=16)
-model_path = '/mnt/c/Users/survey/Documents/GitHub/EfficientNet-PyTorch/efficientnet-b4_fold_0.pth'
+model_path = args.model_path
+# model_path = '/mnt/c/Users/survey/Documents/GitHub/EfficientNet-PyTorch/efficientnet-b4_fold_0.pth'
 
 # Load the trained model
 model = EfficientNet.from_pretrained('efficientnet-b4')
