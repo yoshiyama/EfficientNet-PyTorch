@@ -1,4 +1,4 @@
-# python your_script.py --root_dir /mnt/c/Users/survey/Desktop/NAPS --model_path /mnt/c/Users/survey/Documents/GitHub/EfficientNet-PyTorch/efficientnet-b4_fold_0.pth
+# python transfer_test.py --root_dir /mnt/c/Users/survey/Desktop/NAPS --model_path /mnt/c/Users/survey/Documents/GitHub/EfficientNet-PyTorch/efficientnet-b4_fold_0.pth
 
 import torch
 import os
@@ -12,6 +12,7 @@ import datetime
 from PIL import Image
 import matplotlib.pyplot as plt
 import argparse
+from scipy.stats import pearsonr
 
 
 # Add argparse for command line arguments
@@ -109,9 +110,13 @@ for i in range(len(predictions)):
 rmse = np.sqrt(np.mean((predictions - labels) ** 2))
 mae = np.mean(np.abs(predictions - labels))
 
+# Calculate correlation coefficient
+correlation, _ = pearsonr(predictions, labels)
+
 print(f'Test Loss: {test_loss / len(test_loader)}')
 print(f'Root Mean Squared Error (RMSE): {rmse}')
 print(f'Mean Absolute Error (MAE): {mae}')
+print(f'Correlation Coefficient: {correlation}')
 
 # Plot predictions vs labels
 plt.scatter(labels, predictions, color='blue')
