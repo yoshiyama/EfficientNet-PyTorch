@@ -1,10 +1,19 @@
-#python transfer.py --epochs 20
-
-#python transfer.py --epochs 20 --add_name NAPS --csv_path /path/to/your/csv_file.csv --traindir /path/to/your/train_directory
+#python transfer1.py --epochs 20 --add_name GAPED --csv_path /mnt/c/Users/survey/Desktop/GAPED_2/GAPED/GAPED4AI/Train_Val.csv --traindir /mnt/c/Users/survey/Desktop/GAPED_2/GAPED/GAPED4AI/Train_Val
 
 #python transfer.py --epochs 20 --add_name OASIS --csv_path /mnt/c/Users/survey/Desktop/OASIS/Train_Val.csv --traindir /mnt/c/Users/survey/Desktop/OASIS/Train_Val
 
-#python transfer1.py --epochs 20 --add_name GAPED --csv_path /mnt/c/Users/survey/Desktop/GAPED_2/GAPED/GAPED4AI/Train_Val.csv --traindir /mnt/c/Users/survey/Desktop/GAPED_2/GAPED/GAPED4AI/Train_Val
+
+#python transfer1.py --epochs 20 --add_name NAPS --csv_path /mnt/c/Users/survey/Desktop/NAPS/Train_Val.csv --traindir /mnt/c/Users/survey/Desktop/NAPS/Train_Val
+
+# python transfer1.py --epochs 20 --add_name GAPED_arousal --csv_path /mnt/c/Users/survey/Desktop/GAPED_2/GAPED/GAPED4AI/Train_Val.csv --traindir /mnt/c/Users/survey/Desktop/GAPED_2/GAPED/GAPED4AI/Train_Val
+
+#python transfer.py --epochs 20 --add_name OASIS_arousal --csv_path /mnt/c/Users/survey/Desktop/OASIS/Train_Val.csv --traindir /mnt/c/Users/survey/Desktop/OASIS/Train_Val
+
+#python transfer1.py --epochs 20 --add_name NAPS_arousal --csv_path /mnt/c/Users/survey/Desktop/NAPS/Train_Val.csv --traindir /mnt/c/Users/survey/Desktop/NAPS/Train_Val
+
+# python transfer1.py --epochs 20 --add_name GAPED --csv_path /mnt/c/Users/survey/Desktop/GAPED_2/GAPED/GAPED4AI/Train_Val.csv --traindir /mnt/c/Users/survey/Desktop/GAPED_2/GAPED/GAPED4AI/Train_Val --label_type arousal
+
+
 # 実行方法
 import torch
 import os
@@ -25,6 +34,7 @@ class RegressionDataset(Dataset):
         self.data = pd.read_csv(csv_file)
         self.image_dir = image_dir
         self.transform = transform
+        self.label_column = 2 if args.label_type == 'arousal' else 1
         # print(self.data.head())
         print(self.data)
 
@@ -40,7 +50,9 @@ class RegressionDataset(Dataset):
         if self.transform is not None:
             image = self.transform(image)
 
-        label = self.data.iloc[idx,1]
+        # label = self.data.iloc[idx,1]# 1列目(Valence)の値を取得
+        # label = self.data.iloc[idx, 2]  # 2列目(Arousal)の値を取得
+        label = self.data.iloc[idx, self.label_column]
         label = float(label)  # Ensure the label is a float
         # print("label=",label)
 
@@ -55,6 +67,8 @@ parser.add_argument('--epochs', type=int, default=10, help='Number of epochs to 
 parser.add_argument('--add_name', type=str, required=True, help='Additional name for output files')
 parser.add_argument('--csv_path', type=str, required=True, help='Path to the CSV file containing continuous values')
 parser.add_argument('--traindir', type=str, required=True, help='Path to the training directory containing images')
+parser.add_argument('--label_type', choices=['valence', 'arousal'], required=True, help='Type of label (valence or arousal)')
+
 args = parser.parse_args()
 
 # add_name="NAPS"
@@ -102,8 +116,6 @@ train_dataset = RegressionDataset(csv_path, traindir, transform=train_transform)
 k_folds = 5
 kfold = KFold(n_splits=k_folds, shuffle=True)
 
-
-
 # Initialize the dict to store loss history for each fold
 loss_history = {}# Add this line to record losses
 
@@ -114,19 +126,7 @@ for fold, (train_ids, val_ids) in enumerate(kfold.split(train_dataset)):
     train_ids = list(train_ids)
     val_ids = list(val_ids)
     print(f'FOLD {fold}')
-    # print('--------------------------------')
-    # print(f'train_ids: {train_ids}')
-    # print(f'valid_ids: {val_ids}')
-    # print('--------------------------------')
-    # data_0 = train_dataset[0]
-    # print("YKK=",type(data_0))
-    # print('-------------kero----------------')
-    # print("train_ids=",len(train_ids))
-    # data_0 = train_ids[0]
-    # print("data_0=", data_0)
-    # print("YKK=",type(data_0))
-    # print("train_dataset=",len(train_dataset))
-    # Define the data subsets for training and validation
+
     train_subsampler = Subset(train_dataset, train_ids)
     val_subsampler = Subset(train_dataset, val_ids)
     # print('---------------yo-----------------')
@@ -138,18 +138,6 @@ for fold, (train_ids, val_ids) in enumerate(kfold.split(train_dataset)):
     # Define data loaders for training and validation
     train_loader = DataLoader(train_subsampler, batch_size=16)
     val_loader = DataLoader(val_subsampler, batch_size=16)
-    # train_loader = DataLoader(train_dataset, batch_size=16, sampler=train_subsampler)
-    # val_loader = DataLoader(train_dataset, batch_size=16, sampler=val_subsampler)
-    # print('---------------flog-----------------')
-    # print("train_loader=",len(train_loader))
-    # Get the first batch from the train_loader
-    # first_batch = next(iter(train_loader))
-    # print(type(first_batch))  # Check the type of the first_batch
-    # print(len(first_batch))  # Check the length (number of elements) in the first_batch
-    #
-    # # If the first_batch is a list or tuple, print the type of its first element
-    # if isinstance(first_batch, (list, tuple)):
-    #     print(type(first_batch[0]))
 
     # Initialize the pretrained EfficientNet
     model = EfficientNet.from_pretrained('efficientnet-b4')
@@ -219,16 +207,6 @@ for fold, (train_ids, val_ids) in enumerate(kfold.split(train_dataset)):
     # torch.save(model.state_dict(), f'efficientnet-b4_fold_{fold}.pth')
 
 print('Finished Training')
-# Plot the loss history for each fold
-# for fold in loss_history.keys():
-#     plt.figure(figsize=(10, 5))
-#     plt.plot(loss_history[fold]["train"], label="Train Loss")
-#     plt.plot(loss_history[fold]["val"], label="Validation Loss")
-#     plt.title(f"Loss history for fold {fold}")
-#     plt.xlabel("Epoch")
-#     plt.ylabel("Loss")
-#     plt.legend()
-#     plt.show()
 
 current_time_2nd = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
 # 保存するディレクトリを作成
@@ -240,7 +218,8 @@ for fold in loss_history.keys():
     plt.figure(figsize=(10, 5))
     plt.plot(loss_history[fold]["train"], label="Train Loss")
     plt.plot(loss_history[fold]["val"], label="Validation Loss")
-    plt.title(f"Loss history for fold {fold}")
+    # plt.title(f"Loss history for fold {fold}")
+    plt.title(f"Loss history for fold {fold} ({args.label_type} label)")
     plt.xlabel("Epoch")
     plt.ylabel("Loss")
     plt.legend()
@@ -252,5 +231,6 @@ for fold in loss_history.keys():
 
 # 損失履歴データをCSVファイルとして保存
 loss_history_df = pd.DataFrame(loss_history)
-loss_history_filename = f"{output_dir}/loss_history_{add_name}_{current_time_2nd}.csv"
+# loss_history_filename = f"{output_dir}/loss_history_{add_name}_{current_time_2nd}.csv"
+loss_history_filename = f"{output_dir}/loss_history_{args.add_name}_{args.label_type}_{current_time_2nd}.csv"
 loss_history_df.to_csv(loss_history_filename, index=False)

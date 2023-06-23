@@ -1,7 +1,20 @@
 # python transfer_test.py --root_dir /mnt/c/Users/survey/Desktop/NAPS --model_path /mnt/c/Users/survey/Documents/GitHub/EfficientNet-PyTorch/efficientnet-b4_fold_0.pth
 
 # 実行方法
-# python transfer_test.py --root_dir /mnt/c/Users/survey/Desktop/GAPED_2/GAPED/GAPED4AI --model_path /mnt/c/Users/survey/Documents/GitHub/EfficientNet-PyTorch/efficientnet-b4_fold_GAPED_1_20230514144151.pth
+# python transfer_test.py --root_dir /mnt/c/Users/survey/Desktop/GAPED_2/GAPED/GAPED4AI --model_path /mnt/c/Users/survey/Documents/GitHub/EfficientNet-PyTorch/efficientnet-b4_fold_GAPED_3_20230516124343.pth
+
+# python transfer_test.py --root_dir /mnt/c/Users/survey/Desktop/OASIS --model_path /mnt/c/Users/survey/Documents/GitHub/EfficientNet-PyTorch/efficientnet-b4_fold_OASIS_4_20230514151232.pth
+
+# python transfer_test.py --root_dir /mnt/c/Users/survey/Desktop/NAPS/ --model_path /mnt/c/Users/survey/Documents/GitHub/EfficientNet-PyTorch/efficientnet-b4_fold_NAPS_3_20230620190421.pth
+
+
+
+#python transfer_test.py --root_dir /mnt/c/Users/survey/Desktop/GAPED_2/GAPED/GAPED4AI --model_path efficientnet-b4_fold_GAPED_arousal_0_20230623000612.pth
+
+#python transfer_test.py --root_dir /mnt/c/Users/survey/Desktop/OASIS --model_path efficientnet-b4_fold_OASIS_arousal_0_20230623052223.pth
+
+
+# python transfer_test.py --root_dir /mnt/c/Users/survey/Desktop/NAPS --model_path /mnt/c/Users/survey/Documents/GitHub/EfficientNet-PyTorch/efficientnet-b4_fold_0.pth --arousal
 
 
 
@@ -24,6 +37,7 @@ from scipy.stats import pearsonr
 parser = argparse.ArgumentParser(description='Regression model with EfficientNet')
 parser.add_argument('--root_dir', required=True, help='Root directory path')
 parser.add_argument('--model_path', required=True, help='Model file path')
+parser.add_argument('--label_type', choices=['valence', 'arousal'], default='valence', help='Type of label (valence or arousal)')
 args = parser.parse_args()
 
 
@@ -47,7 +61,9 @@ class RegressionDataset(Dataset):
         if self.transform is not None:
             image = self.transform(image)
 
-        label = self.data.iloc[idx,1]
+        label = self.data.iloc[idx, 1 if args.label_type == 'valence' else 2]
+        # label = self.data.iloc[idx,1]# 1列目(Valence)の値を取得
+        # label = self.data.iloc[idx, 2]  # 2列目(Arousal)の値を取得
         label = float(label)  # Ensure the label is a float
         # print("label=",label)
 

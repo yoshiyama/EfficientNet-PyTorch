@@ -1,6 +1,6 @@
 # 実行方法
 # python transfer_test.py --root_dir /mnt/c/Users/survey/Desktop/GAPED_2/GAPED/GAPED4AI --model_path /mnt/c/Users/survey/Documents/GitHub/EfficientNet-PyTorch/efficientnet-b4_fold_GAPED_1_20230514144151.pth
-# python inference.py --image_dir /home/user/images --model_path /home/user/models/model.pth
+# python transfer_eval.py --image_dir /home/user/images --model_path /home/user/models/model.pth
 
 
 import torch
@@ -13,7 +13,7 @@ import argparse
 import glob
 import pandas as pd
 import numpy as np
-
+from datetime import datetime
 
 # Add argparse for command line arguments
 parser = argparse.ArgumentParser(description='Inference with EfficientNet')
@@ -94,7 +94,11 @@ results = pd.DataFrame({
     'Prediction': predictions
 })
 
-results.to_csv('predictions.csv', index=False)
+# Generate unique filename
+current_time = datetime.now().strftime("%Y%m%d%H%M%S")
+filename = f'predictions_{current_time}.csv'
+
+results.to_csv(filename, index=False)
 
 for i in range(len(predictions)):
     print(f"画像パス: {image_paths[i]}, 予測値: {predictions[i]}")
