@@ -1,6 +1,8 @@
 # 実行方法
 # python transfer_test.py --root_dir /mnt/c/Users/survey/Desktop/GAPED_2/GAPED/GAPED4AI --model_path /mnt/c/Users/survey/Documents/GitHub/EfficientNet-PyTorch/efficientnet-b4_fold_GAPED_1_20230514144151.pth
 # python transfer_eval.py --image_dir /home/user/images --model_path /home/user/models/model.pth
+# python transfer_eval.py --image_dir /mnt/c/Users/keikan2/Desktop/Test/ --model_path /mnt/c/Users/keikan2/Desktop/EfficientNet-PyTorch/trained_params_valence/efficientnet-b4_fold_OASIS_valence_0.pth --output_csv /mnt/c/Users/keikan2/Desktop/test.csv
+
 
 
 import torch
@@ -19,6 +21,7 @@ from datetime import datetime
 parser = argparse.ArgumentParser(description='Inference with EfficientNet')
 parser.add_argument('--image_dir', required=True, help='Image directory path')
 parser.add_argument('--model_path', required=True, help='Model file path')
+parser.add_argument('--output_csv', required=True, help='Output CSV file name')  # Add this line
 args = parser.parse_args()
 
 
@@ -80,25 +83,41 @@ model = model.to(device)
 # Perform inference
 model.eval()
 predictions = []
-image_paths = []
+# image_paths = []
+image_filenames = []
 with torch.no_grad():
     for i, data in enumerate(test_loader, 0):
         inputs, paths = data[0].to(device), data[1]
         outputs = model(inputs)
         predictions.extend(np.atleast_1d(outputs.squeeze().cpu().numpy()))
-        image_paths.extend(paths)  # 画像のパスを追加
+        image_filenames.extend([os.path.basename(path) for path in paths])
+        # image_paths.extend(paths)  # 画像のパスを追加
 
+# # 予測の出力とCSVへの保存
+# results = pd.DataFrame({
+#     'Image_Path': image_paths,
+#     'Prediction': predictions
+# })
 # 予測の出力とCSVへの保存
 results = pd.DataFrame({
-    'Image_Path': image_paths,
+    'Image_Filename': image_filenames,  # Change column name to 'Image_Filename'
     'Prediction': predictions
 })
 
-# Generate unique filename
-current_time = datetime.now().strftime("%Y%m%d%H%M%S")
-filename = f'predictions_{current_time}.csv'
-
-results.to_csv(filename, index=False)
+# Save to the specified CSV file
+results.to_csv(args.output_csv, index=False)  # Change this line
 
 for i in range(len(predictions)):
-    print(f"画像パス: {image_paths[i]}, 予測値: {predictions[i]}")
+    print(f"画像ファイル名: {image_filenames[i]}, 予測値: {predictions[i]}")  # Change '画像パス' to '画像ファイル名'
+
+# for i in range(len(predictions)):
+#     print(f"画像パス: {image_paths[i]}, 予測値: {predictions[i]}")
+
+# # Generate unique filename
+# current_time = datetime.now().strftime("%Y%m%d%H%M%S")
+# filename = f'predictions_{current_time}.csv'
+#
+# results.to_csv(filename, index=False)
+#
+# for i in range(len(predictions)):
+#     print(f"画像パス: {image_paths[i]}, 予測値: {predictions[i]}")
