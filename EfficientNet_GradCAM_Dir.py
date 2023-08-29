@@ -1,4 +1,4 @@
-# python EfficientNet_GradCAM.py --model_path path/to/your/model.pth --image_dir path/to/your/image/directory
+# python EfficientNet_GradCAM_Dir.py --model_path path/to/your/model.pth --image_dir path/to/your/image/directory
 
 
 import os
@@ -76,11 +76,15 @@ for image_name in os.listdir(args.image_dir):
     negative_cam = np.maximum(negative_cam, 0)  # ReLU
 
     # Normalize and resize
+    # Normalize and resize
     positive_cam = cv2.resize(positive_cam, (input_image.size[0], input_image.size[1]))
-    # positive_cam = (positive_cam - positive_cam.min()) / (positive_cam.max() - positive_cam.min())
-    # After:
-    max_value = np.percentile(positive_cam, 90)
-    positive_cam = np.clip(positive_cam, 0, max_value) / max_value
+    #change below
+    positive_cam = (positive_cam - positive_cam.min()) / (positive_cam.max() - positive_cam.min())
+
+    ## After:
+    # max_value = np.percentile(positive_cam, 90)
+    # positive_cam = np.clip(positive_cam, 0, max_value) / max_value
+    ####
 
     negative_cam = cv2.resize(negative_cam, (input_image.size[0], input_image.size[1]))
     negative_cam = (negative_cam - negative_cam.min()) / (negative_cam.max() - negative_cam.min())

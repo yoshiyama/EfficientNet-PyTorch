@@ -1,6 +1,6 @@
 # python EfficientNet_GradCAM.py --model_path path/to/your/trained/model.pth --image_path path/to/your/image.jpg
 
-# python EfficientNet_GradCAM.py --model_path /mnt/c/Users/survey/Documents/GitHub/EfficientNet-PyTorch/trained_params_valence/efficientnet-b4_fold_OASIS_valence_1.pth --image_path /mnt/c/Users/survey/Desktop/景観_ 電柱/2022/Toyota_pole_eval_images-extracted/no_pole_2048/output_108.jpg
+# python EfficientNet_GradCAM.py --model_path /mnt/c/Users/survey/Documents/GitHub/EfficientNet-PyTorch/trained_params_valence/efficientnet-b4_fold_OASIS_valence_1.pth --image_path /mnt/c/Users/survey/Desktop/景観_ 電柱/2022/Toyota_pole_eval_images-extracted/no_pole_2048/output_108.jpg'
 
 import argparse
 import torch
@@ -73,9 +73,51 @@ negative_cam = np.maximum(negative_cam, 0)  # ReLU
 
 # Normalize and resize
 positive_cam = cv2.resize(positive_cam, (input_image.size[0], input_image.size[1]))
+
+# #crop start
+# # 元の画像の中心点を計算
+# center_x = positive_cam.shape[1] // 2
+# center_y = positive_cam.shape[0] // 2
+#
+# # 切り抜く範囲を計算
+# start_x = center_x - 1024
+# end_x = center_x + 1024
+#
+# # 範囲が画像の範囲外にならないように調整
+# start_x = max(0, start_x)
+# end_x = min(positive_cam.shape[1], end_x)
+#
+# # 画像を切り抜く
+# positive_cam = positive_cam[:, start_x:end_x]
+# #crop end
+
+#change below
 positive_cam = (positive_cam - positive_cam.min()) / (positive_cam.max() - positive_cam.min())
 
+## After:
+# max_value = np.percentile(positive_cam, 95)
+# positive_cam = np.clip(positive_cam, 0, max_value) / max_value
+####
+
 negative_cam = cv2.resize(negative_cam, (input_image.size[0], input_image.size[1]))
+
+# #crop start
+# # 元の画像の中心点を計算
+# center_x = negative_cam.shape[1] // 2
+# center_y = negative_cam.shape[0] // 2
+#
+# # 切り抜く範囲を計算
+# start_x = center_x - 1024
+# end_x = center_x + 1024
+#
+# # 範囲が画像の範囲外にならないように調整
+# start_x = max(0, start_x)
+# end_x = min(negative_cam.shape[1], end_x)
+#
+# # 画像を切り抜く
+# negative_cam = negative_cam[:, start_x:end_x]
+# #crop end
+
 negative_cam = (negative_cam - negative_cam.min()) / (negative_cam.max() - negative_cam.min())
 
 # 1. Apply the 'jet' colormap on the Grad-CAM heatmap
@@ -90,7 +132,26 @@ colored_neg_cam = (colored_neg_cam * 255).astype(np.uint8)
 colored_pos_cam = cv2.cvtColor(colored_pos_cam, cv2.COLOR_RGBA2RGB)
 colored_neg_cam = cv2.cvtColor(colored_neg_cam, cv2.COLOR_RGBA2RGB)
 
+
+
 input_image_np = np.array(input_image)
+
+# #crop start
+# # 画像の中心点を計算
+# center_x = input_image_np.shape[1] // 2
+# center_y = input_image_np.shape[0] // 2
+#
+# # 切り抜く範囲を計算
+# start_x = center_x - 1024
+# end_x = center_x + 1024
+#
+# # 範囲が画像の範囲外にならないように調整
+# start_x = max(0, start_x)
+# end_x = min(input_image_np.shape[1], end_x)
+#
+# # 画像を切り抜く
+# input_image_np = input_image_np[:, start_x:end_x]
+# #crop end
 
 # 4. Overlay the colored heatmaps on the original image
 overlayed_pos_image = cv2.addWeighted(input_image_np, 0.5, colored_pos_cam, 0.5, 0)
